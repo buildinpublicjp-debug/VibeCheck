@@ -3,6 +3,7 @@ import SwiftData
 
 struct SettingsView: View {
     @Environment(ObsidianService.self) private var obsidianService
+    @Environment(ClaudeAPIService.self) private var claudeAPIService
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: SettingsViewModel?
 
@@ -11,12 +12,16 @@ struct SettingsView: View {
             Form {
                 if let vm = viewModel {
                     obsidianSection(vm: vm)
+                    claudeAPISection(vm: vm)
                 }
             }
             .navigationTitle("Settings")
             .task {
                 if viewModel == nil {
-                    viewModel = SettingsViewModel(obsidianService: obsidianService)
+                    viewModel = SettingsViewModel(
+                        obsidianService: obsidianService,
+                        claudeAPIService: claudeAPIService
+                    )
                 }
             }
             .alert("Error", isPresented: showingError) {
@@ -33,6 +38,8 @@ struct SettingsView: View {
             set: { if !$0 { viewModel?.errorMessage = nil } }
         )
     }
+
+    // MARK: - Obsidian Section
 
     @ViewBuilder
     private func obsidianSection(vm: SettingsViewModel) -> some View {
@@ -92,10 +99,97 @@ struct SettingsView: View {
             }
         }
     }
+
+    // MARK: - Claude API Section
+
+    @ViewBuilder
+    private func claudeAPISection(vm: SettingsViewModel) -> some View {
+        Section {
+            if vm.isAPIKeyConfigured {
+                apiKeyConfiguredView(vm: vm)
+            } else {
+                apiKeyInputView(vm: vm)
+            }
+        } header: {
+            Text("Claude API")
+        } footer: {
+            Text("Use Claude AI to parse your Daily Notes into categories. Your API key is stored securely in the Keychain.")
+        }
+    }
+
+    @ViewBuilder
+    private func apiKeyInputView(vm: SettingsViewModel) -> some View {
+        SecureField("API Key", text: Binding(
+            get: { vm.apiKeyInput },
+            set: { vm.apiKeyInput = $0 }
+        ))
+        .textContentType(.password)
+        .autocorrectionDisabled()
+
+        Button("Save API Key") {
+            vm.saveAPIKey()
+        }
+        .disabled(vm.apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    }
+
+    @ViewBuilder
+    private func apiKeyConfiguredView(vm: SettingsViewModel) -> some View {
+        LabeledContent("Status") {
+            Text("API Key Configured")
+                .foregroundStyle(.green)
+        }
+
+        if let status = vm.apiKeyValidationStatus {
+            LabeledContent("Validation") {
+                Text(status)
+                    .foregroundStyle(.secondary)
+            }
+        }
+
+        Button {
+            Task { await vm.validateAPIKey() }
+        } label: {
+            if vm.isValidatingKey {
+                HStack {
+                    Text("Validating...")
+                    ProgressView()
+                }
+            } else {
+                Text("Validate Key")
+            }
+        }
+        .disabled(vm.isValidatingKey)
+
+        Button {
+            Task { await vm.parseTodaysNote(modelContext: modelContext) }
+        } label: {
+            if vm.isParsing {
+                HStack {
+                    Text("Parsing...")
+                    ProgressView()
+                }
+            } else {
+                Text("Parse Today's Note")
+            }
+        }
+        .disabled(vm.isParsing || vm.lastReadNote == nil)
+
+        if let message = vm.parseResultMessage {
+            LabeledContent("Result") {
+                Text(message)
+                    .foregroundStyle(.secondary)
+            }
+        }
+
+        Button("Remove API Key", role: .destructive) {
+            vm.deleteAPIKey()
+        }
+    }
 }
 
 #Preview {
     SettingsView()
-        .modelContainer(for: [DailySummary.self, DailyNote.self], inMemory: true)
+        .modelContainer(for: [DailySummary.self, DailyNote.self, ParsedEntry.self], inMemory: true)
         .environment(ObsidianService())
+        .environment(ClaudeAPIService())
 }

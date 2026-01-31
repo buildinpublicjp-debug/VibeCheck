@@ -9,15 +9,25 @@ final class SettingsViewModel {
     var errorMessage: String?
     var lastReadNote: String?
 
+    // Claude API state
+    var apiKeyInput = ""
+    var isAPIKeyConfigured: Bool { claudeAPIService.hasAPIKey }
+    var isValidatingKey = false
+    var apiKeyValidationStatus: String?
+    var isParsing = false
+    var parseResultMessage: String?
+
     private let obsidianService: ObsidianServiceProtocol
+    private let claudeAPIService: ClaudeAPIServiceProtocol
     private let logger = Logger(subsystem: "com.vibecheck", category: "SettingsViewModel")
 
     var isVaultConnected: Bool { obsidianService.isVaultConnected }
     var vaultName: String? { obsidianService.vaultName }
     var dailyNotesFolder: String { obsidianService.dailyNotesFolder }
 
-    init(obsidianService: ObsidianServiceProtocol) {
+    init(obsidianService: ObsidianServiceProtocol, claudeAPIService: ClaudeAPIServiceProtocol) {
         self.obsidianService = obsidianService
+        self.claudeAPIService = claudeAPIService
     }
 
     func connectVault(url: URL) {
@@ -76,6 +86,114 @@ final class SettingsViewModel {
         } catch {
             logger.error("Failed to save daily note: \(error)")
             errorMessage = "Failed to save note: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Claude API
+
+    func saveAPIKey() {
+        let key = apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else {
+            errorMessage = "API key cannot be empty."
+            return
+        }
+
+        do {
+            try claudeAPIService.saveAPIKey(key)
+            apiKeyInput = ""
+            apiKeyValidationStatus = nil
+            parseResultMessage = nil
+            logger.info("API key saved.")
+        } catch {
+            errorMessage = error.localizedDescription
+            logger.error("Failed to save API key: \(error)")
+        }
+    }
+
+    func deleteAPIKey() {
+        do {
+            try claudeAPIService.deleteAPIKey()
+            apiKeyValidationStatus = nil
+            parseResultMessage = nil
+            logger.info("API key deleted.")
+        } catch {
+            errorMessage = error.localizedDescription
+            logger.error("Failed to delete API key: \(error)")
+        }
+    }
+
+    func validateAPIKey() async {
+        isValidatingKey = true
+        apiKeyValidationStatus = nil
+
+        do {
+            let valid = try await claudeAPIService.validateAPIKey()
+            apiKeyValidationStatus = valid ? "API key is valid." : "API key is invalid."
+        } catch {
+            apiKeyValidationStatus = error.localizedDescription
+        }
+
+        isValidatingKey = false
+    }
+
+    func parseTodaysNote(modelContext: ModelContext) async {
+        guard let noteContent = lastReadNote else {
+            errorMessage = "No daily note loaded. Read today's note first."
+            return
+        }
+
+        isParsing = true
+        parseResultMessage = nil
+
+        do {
+            let result = try await claudeAPIService.parseDailyNote(noteContent)
+            saveParsedEntries(result, modelContext: modelContext)
+            parseResultMessage = "Parsed \(result.categories.count) categories."
+            logger.info("Parsed today's note: \(result.categories.count) categories")
+        } catch {
+            errorMessage = error.localizedDescription
+            logger.error("Failed to parse today's note: \(error)")
+        }
+
+        isParsing = false
+    }
+
+    private func saveParsedEntries(_ result: ClaudeParseResult, modelContext: ModelContext) {
+        let today = Calendar.current.startOfDay(for: .now)
+
+        for item in result.categories {
+            guard let category = EntryCategory(rawValue: item.category) else { continue }
+
+            let rawValue = category.rawValue
+            var descriptor = FetchDescriptor<ParsedEntry>(
+                predicate: #Predicate { $0.date == today && $0.categoryRawValue == rawValue }
+            )
+            descriptor.fetchLimit = 1
+
+            do {
+                let existing = try modelContext.fetch(descriptor)
+                if let entry = existing.first {
+                    entry.content = item.content
+                    entry.updatedAt = .now
+                } else {
+                    let entry = ParsedEntry(
+                        date: today,
+                        category: category,
+                        content: item.content,
+                        dailyNoteDate: today
+                    )
+                    modelContext.insert(entry)
+                }
+            } catch {
+                logger.error("Failed to save parsed entry for \(rawValue): \(error)")
+            }
+        }
+
+        do {
+            try modelContext.save()
+        } catch {
+            logger.error("Failed to save model context: \(error)")
+            errorMessage = "Failed to save parsed entries: \(error.localizedDescription)"
         }
     }
 }

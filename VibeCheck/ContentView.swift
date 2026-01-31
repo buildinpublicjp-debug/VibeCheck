@@ -22,7 +22,8 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: [DailySummary.self, DailyNote.self], inMemory: true)
+        .modelContainer(for: [DailySummary.self, DailyNote.self, ParsedEntry.self], inMemory: true)
         .environment(HealthKitService())
         .environment(ObsidianService())
+        .environment(ClaudeAPIService())
 }
