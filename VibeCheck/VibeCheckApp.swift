@@ -1,10 +1,3 @@
-//
-//  VibeCheckApp.swift
-//  VibeCheck
-//
-//  Created by og3939397 on 2026/01/31.
-//
-
 import SwiftUI
 import SwiftData
 
@@ -12,7 +5,7 @@ import SwiftData
 struct VibeCheckApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            DailySummary.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -23,9 +16,12 @@ struct VibeCheckApp: App {
         }
     }()
 
+    @State private var healthKitService = HealthKitService.shared
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(healthKitService)
         }
         .modelContainer(sharedModelContainer)
     }
