@@ -14,8 +14,7 @@ struct ContentView: View {
             }
 
             Tab("Settings", systemImage: "gearshape") {
-                Text("Settings")
-                    .foregroundStyle(.secondary)
+                SettingsView()
             }
         }
     }
@@ -23,6 +22,7 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: DailySummary.self, inMemory: true)
+        .modelContainer(for: [DailySummary.self, DailyNote.self], inMemory: true)
         .environment(HealthKitService())
+        .environment(ObsidianService())
 }

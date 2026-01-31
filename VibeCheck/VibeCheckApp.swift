@@ -6,6 +6,7 @@ struct VibeCheckApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             DailySummary.self,
+            DailyNote.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -17,11 +18,13 @@ struct VibeCheckApp: App {
     }()
 
     @State private var healthKitService = HealthKitService.shared
+    @State private var obsidianService = ObsidianService()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(healthKitService)
+                .environment(obsidianService)
         }
         .modelContainer(sharedModelContainer)
     }
