@@ -9,8 +9,7 @@ struct ContentView: View {
             }
 
             Tab("Timeline", systemImage: "calendar.day.timeline.left") {
-                Text("Timeline")
-                    .foregroundStyle(.secondary)
+                TimelineView()
             }
 
             Tab("Settings", systemImage: "gearshape") {
