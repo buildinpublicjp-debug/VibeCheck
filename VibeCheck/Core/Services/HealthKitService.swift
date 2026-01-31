@@ -27,6 +27,15 @@ final class HealthKitService: HealthKitServiceProtocol, Sendable {
         if let sleepAnalysis = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) {
             types.insert(sleepAnalysis)
         }
+        if let activeEnergy = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
+            types.insert(activeEnergy)
+        }
+        if let exerciseTime = HKQuantityType.quantityType(forIdentifier: .appleExerciseTime) {
+            types.insert(exerciseTime)
+        }
+        if let hrv = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN) {
+            types.insert(hrv)
+        }
         return types
     }()
 

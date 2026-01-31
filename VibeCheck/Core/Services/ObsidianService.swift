@@ -40,7 +40,7 @@ final class ObsidianService: ObsidianServiceProtocol, @unchecked Sendable {
         defer { url.stopAccessingSecurityScopedResource() }
 
         let bookmarkData = try url.bookmarkData(
-            options: .minimalBookmark,
+            options: [],
             includingResourceValuesForKeys: nil,
             relativeTo: nil as URL?
         )
@@ -65,7 +65,7 @@ final class ObsidianService: ObsidianServiceProtocol, @unchecked Sendable {
         if isStale {
             logger.info("Bookmark is stale, re-saving.")
             let newData = try url.bookmarkData(
-                options: .minimalBookmark,
+                options: [],
                 includingResourceValuesForKeys: nil,
                 relativeTo: nil as URL?
             )

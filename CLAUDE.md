@@ -78,7 +78,7 @@ enum VibeCheckError: LocalizedError {
 - Parse Daily Notes from vault
 
 ### 3. ClaudeAPIService
-- Use Claude Haiku 4.5 for text parsing
+- Use Claude 3 Haiku for text parsing
 - Store API key in Keychain
 - Parse Daily Notes into categories: workout, reading, insight, work, food, health
 

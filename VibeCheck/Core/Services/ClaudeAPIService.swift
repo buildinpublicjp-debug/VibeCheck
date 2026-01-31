@@ -4,7 +4,7 @@ import os
 @Observable
 final class ClaudeAPIService: ClaudeAPIServiceProtocol, @unchecked Sendable {
     private static let apiKeyKeychainKey = "claude_api_key"
-    private static let model = "claude-haiku-4-5-20241022"
+    private static let model = "claude-3-haiku-20240307"
     private static let apiURL = URL(string: "https://api.anthropic.com/v1/messages")!
     private static let anthropicVersion = "2023-06-01"
 
@@ -120,16 +120,16 @@ final class ClaudeAPIService: ClaudeAPIServiceProtocol, @unchecked Sendable {
 
     static func buildPrompt(for noteText: String) -> String {
         """
-        Analyze the following daily note and categorize its contents into these categories: \
-        workout, reading, insight, work, food, health.
+        以下のDaily Noteを分析し、内容を次のカテゴリに分類してください: \
+        workout, reading, insight, work, food, health
 
-        Only include categories that are present in the note. For each category, provide a brief \
-        summary of the relevant content.
+        ノートに含まれるカテゴリのみを返してください。各カテゴリについて、\
+        該当する内容を日本語で簡潔に要約してください。
 
-        Return ONLY valid JSON with no additional text or code fences. Use this exact format:
-        {"categories":[{"category":"workout","content":"summary here"}]}
+        追加テキストやコードフェンスなしで、有効なJSONのみを返してください。以下の形式を使用:
+        {"categories":[{"category":"workout","content":"要約をここに"}]}
 
-        Daily note:
+        Daily Note:
         \(noteText)
         """
     }

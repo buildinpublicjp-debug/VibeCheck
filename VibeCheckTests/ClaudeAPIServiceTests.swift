@@ -27,7 +27,7 @@ struct ClaudeAPIServiceTests {
     @Test func buildPromptRequestsJSONOnly() {
         let prompt = ClaudeAPIService.buildPrompt(for: "test")
 
-        #expect(prompt.contains("ONLY valid JSON"))
+        #expect(prompt.contains("JSONのみを返してください"))
     }
 
     // MARK: - JSON Extraction
